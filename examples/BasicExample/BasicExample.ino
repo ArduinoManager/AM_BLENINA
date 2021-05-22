@@ -165,11 +165,11 @@ void doWork() {
 /**
   This function is called when the ios device connects and needs to initialize the position of switches and knobs
 */
-void doSync (char *variable) {
-  Serial.print("Sync "); Serial.println(variable);
-  amController.writeMessage(variable, map(servo.read(), 0, 180, 0, 1023));
-  amController.writeMessage(variable, yellowLed);
-  amController.writeTxtMessage("Msg", "Hello, I'm your Arduino Nano 33 iOT board");
+void doSync () {
+  //Serial.print("Sync "); Serial.println(variable);
+    amController.writeMessage("Knob1", (float)map(servo.read(), 0, 180, 0, 1023));
+    amController.writeMessage("S1", yellowLed);
+    amController.writeTxtMessage("Msg", "Hello, I'm your Arduino Nano 33 IOT board");
 }
 
 /**

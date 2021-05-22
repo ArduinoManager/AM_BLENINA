@@ -104,7 +104,7 @@ void doWork() {
 /**
   This function is called when the ios device connects and needs to initialize the position of switches and knobs
 */
-void doSync (char *variable) {
+void doSync() {
 }
 
 
@@ -130,7 +130,7 @@ void processOutgoingMessages() {
 /**
   This function is called when the iOS device connects
 */
-void deviceConnected () {
+void deviceConnected() {
 
   Serial.println("Device connected");
 }
@@ -138,7 +138,7 @@ void deviceConnected () {
 /**
   This function is called when the iOS device disconnects
 */
-void deviceDisconnected () {
+void deviceDisconnected() {
 
   Serial.println("Device disconnected");
 }

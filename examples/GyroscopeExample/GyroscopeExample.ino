@@ -104,7 +104,7 @@ void doWork() {
   This function is called when the ios device connects and needs to initialize the position of switches and knobs
 
 */
-void doSync (char *variable) {
+void doSync() {
 }
 
 
