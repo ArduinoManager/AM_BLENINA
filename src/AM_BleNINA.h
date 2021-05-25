@@ -29,7 +29,21 @@
 #define ALARMS_SUPPORT              // uncomment to enable support for Alarm Widget - LEFT THIS ALONE AT THE MOMENT
 #define SD_SUPPORT                  // uncomment to enable support for SD Widget  - LEFT THIS ALONE AT THE MOMENT
 #define SDLOGGEDATAGRAPH_SUPPORT    // uncomment to enable support for Logged Data Widget - LEFT THIS ALONE AT THE MOMENT
-#define DEBUG                       // uncomment to enable debugging - You should not need it !
+//#define DEBUG                       // uncomment to enable debugging - You should not need it !
+
+/*******************************
+
+Apparently the SD Card doesn't work if the sketch's setup contains
+
+pinMode(LED_BUILTIN,OUTPUT);
+
+If the LED_BUILTIN is not configured as OUTPUT
+
+digitalWrite(LED_BUILTIN, ...);
+
+doesn't work either.
+
+********************************/
 
 
 #define SERVICE_UUID        "19B10000-E8F2-537E-4F6C-D104768A1214"
@@ -58,7 +72,6 @@ class AMController {
 
   private:
 
-//    String		          _data;
     volatile bool 	    _dataAvailable;
 
     char      		      _remainBuffer[128];
@@ -66,11 +79,6 @@ class AMController {
     volatile bool 	    _connectionChanged;
     volatile bool       _connected;
     bool		            _sync;
-
-#ifdef SD_SUPPORT
-    File     		        _root;
-    File      		      _entry;
-#endif
 
 #ifdef ALARMS_SUPPORT
 	unsigned long		_startTime;
@@ -92,11 +100,6 @@ class AMController {
 
     /*
       Pointer to the function where incoming messages are processed
-
-      variable
-
-      value
-
     */
     void (*_processIncomingMessages)(char *variable, char *value);
 
@@ -107,13 +110,11 @@ class AMController {
 
     /*
       Pointer to the function called when a device connects to Arduino
-
     */
     void (*_deviceConnected)(void);
 
     /*
       Pointer to the function called when a device disconnects from Arduino
-
     */
     void (*_deviceDisconnected)(void);
 
@@ -137,7 +138,6 @@ class AMController {
     void removeAlarm(char *id);
 
 #endif
-
 
   public:
 
@@ -209,6 +209,7 @@ class AMController {
 
     uint16_t sdFileSize(const char *variable);
     void sdPurgeLogData(const char *variable);
+    
 #endif
 
     void writeBuffer(uint8_t *buffer, int l);

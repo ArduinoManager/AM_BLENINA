@@ -21,8 +21,8 @@
 #include "AM_BleNINA.h"
 
 BLEService mainService("19B10000-E8F2-537E-4F6C-D104768A1214"); // create service
-BLECharacteristic rxCharacteristic("19B10001-E8F2-537E-4F6C-D104768A1214", BLEWrite | BLENotify, 20, (1==1) );
-BLECharacteristic txCharacteristic("19B10002-E8F2-537E-4F6C-D104768A1214", BLERead | BLENotify, 20, (1==1) );
+BLECharacteristic rxCharacteristic("19B10001-E8F2-537E-4F6C-D104768A1214", BLEWrite | BLENotify, 20, (1 == 1) );
+BLECharacteristic txCharacteristic("19B10002-E8F2-537E-4F6C-D104768A1214", BLERead | BLENotify, 20, (1 == 1) );
 
 BLEService batteryService("180F");
 BLEUnsignedCharCharacteristic batteryLevelChar("2A19", BLERead | BLENotify);
@@ -38,7 +38,7 @@ AMController *myGlobal;
 
 #ifdef DEBUG
 #define LEAP_YEAR(Y)     ( ((1970+Y)>0) && !((1970+Y)%4) && ( ((1970+Y)%100) || !((1970+Y)%400) ) )
-static  const uint8_t 	 monthDays[]={31,28,31,30,31,30,31,31,30,31,30,31}; // API starts months from 1, this array starts from 0
+static  const uint8_t 	 monthDays[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}; // API starts months from 1, this array starts from 0
 #endif
 
 bool check(uint8_t *pRecord, void *pData) {
@@ -160,7 +160,6 @@ void AMController::loop(unsigned long _delay) {
         _deviceConnected();
     }
     else {
-
       BLE.poll();
       if (_deviceDisconnected != NULL)
         _deviceDisconnected();
@@ -175,9 +174,9 @@ void AMController::loop(unsigned long _delay) {
 
   if (_sync) {
     _sync = false;
-      BLE.poll();
-      _doSync();
-      BLE.poll();
+    BLE.poll();
+    _doSync();
+    BLE.poll();
   }
 
 #ifdef ALARMS_SUPPORT
@@ -214,23 +213,23 @@ void AMController::processIncomingData() {
   char      _value[VALUELEN + 1];
   bool      _var = true;
   uint8_t   _idx = 0;
-  int	   lastPound = -1;
+  int	   		lastPound = -1;
 
   _variable[0] = '\0';
   _value[0] = '\0';
 
   uint8_t l = strlen(_remainBuffer);
-  
+
   //Serial.print("Full buffer before >"); Serial.print(_remainBuffer); Serial.println("<");
 
   for (uint8_t i = 0; i < l; i++) {
 
-	BLE.poll();
-	
+    BLE.poll();
+
     if (_var) {
       if (_remainBuffer[i] != '=') {
         _variable[_idx++] = _remainBuffer[i];
-      } 
+      }
       else {
         _variable[_idx] = '\0';
         _var = false;
@@ -244,7 +243,7 @@ void AMController::processIncomingData() {
       if (_remainBuffer[i] != '#') {
         _value[_idx++] = _remainBuffer[i];
       }
-      else {        
+      else {
         _value[_idx] = '\0';
         _var = true;
         _idx = 0;
@@ -252,154 +251,127 @@ void AMController::processIncomingData() {
         if (strlen(_value) > 0 && strcmp(_variable, "Sync") == 0) {
           _sync = true;
         }
-        else {
-
 #ifdef ALARMS_SUPPORT
-          // Manages Alarm creation and update requests
+        else if (strcmp(_variable, "$AlarmId$") == 0 && strlen(_value) > 0) {
 
-          if (strcmp(_variable, "$AlarmId$") == 0 && strlen(_value) > 0) {
+          strcpy(_alarmId, _value);
+        } else if (strcmp(_variable, "$AlarmT$") == 0 && strlen(_value) > 0) {
 
-            strcpy(_alarmId, _value);
-          } else if (strcmp(_variable, "$AlarmT$") == 0 && strlen(_value) > 0) {
+          _alarmTime = atol(_value);
+        }
+        else if (strcmp(_variable, "$AlarmR$") == 0 && strlen(_value) > 0) {
 
-            _alarmTime = atol(_value);
+          if (_alarmTime == 0)
+            this->removeAlarm(_alarmId);
+          else
+            this->createUpdateAlarm(_alarmId, _alarmTime, atoi(_value));
+        }
+#endif
+#ifdef SD_SUPPORT
+        else if (strlen(_variable) > 0 && strcmp(_variable, "SD") == 0) {
+          File root;
+          File entry;
+#ifdef DEBUG
+          Serial.println("List of Files");
+#endif
+          root = SD.open("/");
+          if (!root) {
+#ifdef DEBUG          
+            Serial.println("Cannot open root dir");
+#endif            
+          }          
+          root.rewindDirectory();
+          entry =  root.openNextFile();
+          if (!entry) {
+#ifdef DEBUG          
+            Serial.println("Cannot open first file");
+#endif
           }
-          else if (strcmp(_variable, "$AlarmR$") == 0 && strlen(_value) > 0) {
+          while (entry) {          
+            if (!entry.isDirectory()) {
+	            String name = entry.name();
+#ifdef DEBUG	            
+              Serial.println(name);
+#endif              
+              this->writeTxtMessage("SD", name.c_str());
+            }
+            entry.close();
+            entry = root.openNextFile();
+          }
+          root.close();
+          this->writeTxtMessage("SD", "$EFL$");
+#ifdef DEBUG          
+          Serial.println("File list sent");
+#endif          
+        }
+        else if (strlen(_variable) > 0 && strcmp(_variable, "$SDDL$") == 0) {
+#ifdef DEBUG        
+          Serial.print("File: "); Serial.println(_value);
+#endif          
+          String fileName = String(_value);
+          fileName = "/" + fileName;
+          File entry = SD.open(fileName.c_str(), FILE_READ);
 
-            if (_alarmTime == 0)
-              this->removeAlarm(_alarmId);
-            else
-              this->createUpdateAlarm(_alarmId, _alarmTime, atoi(_value));
+          if (entry) {
+#ifdef DEBUG          
+            Serial.println("File Opened");
+#endif            
+            unsigned long n = 0;
+            uint8_t buffer[64];
+						this->writeTxtMessage("SD", "$C$");
+
+            while (entry.available()) {
+              n = entry.read(buffer, sizeof(buffer));
+              writeBuffer(buffer, n * sizeof(uint8_t));
+            }
+            entry.close();
+#ifdef DEBUG            
+            Serial.println("File completed");
+#endif            
+            this->writeTxtMessage("SD", "$E$");
+#ifdef DEBUG            
+            Serial.println("End Sent");
+#endif            
+          }
+        }
+#endif
+        if (strlen(_variable) > 0 && strlen(_value) > 0) {
+#ifdef ALARMS_SUPPORT
+          if (strcmp(_variable, "$Time$") == 0) {
+            Serial.print("Setting time at value: "); Serial.println(atol(_value));
+            _startTime = atol(_value);
+#ifdef DEBUG            
+            Serial.print("Time Synchronized "); this->printTime(this->now()); Serial.println();
+#endif            
           }
           else
 #endif
-#ifdef SD_SUPPORT
-            if (strlen(_variable) > 0 && strcmp(_variable, "SD") == 0) {
-#ifdef DEBUG
-              Serial.println("List of Files");
-#endif
-              _root = SD.open("/", FILE_READ);
-
-              if (!_root) {
-
-                Serial.println("Cannot open root dir");
-              }
-
-              _root.rewindDirectory();
-
-              _entry =  _root.openNextFile();
-
-              while (_entry) {
-
-                String name = _entry.name();
-                name = name.substring(1);
-
-                if (!_entry.isDirectory() && name[0] != '.') {
-
-#ifdef DEBUG
-                  Serial.println(name);
-#endif
-
-                  this->writeTxtMessage("SD", name.c_str());
-                }
-
-                _entry.close();
-                _entry = _root.openNextFile();
-              }
-
-              _root.close();
-
-              uint8_t buffer[11];
-              strcpy((char *)&buffer, "SD=$EFL$#");
-              rxCharacteristic.writeValue((uint8_t *)&buffer, strlen((const char *)&buffer));
-              delay(WRITE_DELAY);
-
-#ifdef DEBUG
-              Serial.println("File list sent");
-#endif
-            } else if (strlen(_variable) > 0 && strcmp(_variable, "$SDDL$") == 0) {
-
-#ifdef DEBUG
-              Serial.print("File: "); Serial.println(_value);
-#endif
-              String fileName = String(_value);
-              fileName = "/" + fileName;
-              _entry = SD.open(fileName.c_str(), FILE_READ);
-
-              if (_entry) {
-
-#ifdef DEBUG
-                Serial.println("File Opened");
-#endif
-                unsigned long n = 0;
-                uint8_t buffer[64];
-
-                strcpy((char *)&buffer, "SD=$C$#");
-                rxCharacteristic.writeValue((uint8_t *)&buffer, strlen((const char *)&buffer));
-                delay(WRITE_DELAY);
-
-                while (_entry.available()) {
-
-                  n = _entry.read(buffer, sizeof(buffer));
-
-                  writeBuffer(buffer, n * sizeof(uint8_t));
-                }
-                _entry.close();
-
-#ifdef DEBUG
-                Serial.println("File completed");
-#endif
-
-                strcpy((char *)&buffer, "SD=$E$#");
-                rxCharacteristic.writeValue((uint8_t *)&buffer, strlen((const char *)&buffer));
-                delay(WRITE_DELAY);
-
-#ifdef DEBUG
-                Serial.println("End Sent");
-#endif
-              }
-            }
-#endif
-
-#if defined(ALARMS_SUPPORT)
-
-          if (strlen(_variable) > 0 && strlen(_value) > 0) {
-
-            if (strcmp(_variable, "$Time$") == 0) {
-#ifdef DEBUG
-              Serial.print("Setting time at value: "); Serial.println(atol(_value));
-#endif
-			  _startTime = atol(_value);            
-#ifdef DEBUG
-              Serial.print("Time Synchronized "); this->printTime(this->now()); Serial.println();
-#endif
+#ifdef SDLOGGEDATAGRAPH_SUPPORT
+            if (strlen(_variable) > 0 && strcmp(_variable, "$SDLogData$") == 0) {
+              Serial.print("Logged data request for: "); Serial.println(_value);
+              sdSendLogData(_value);
             }
             else
 #endif
-#ifdef SDLOGGEDATAGRAPH_SUPPORT
-          	if (strlen(_variable) > 0 && strcmp(_variable, "$SDLogData$") == 0) {
-#ifdef DEBUG
-            	Serial.print("Logged data request for: "); Serial.println(_value);
-#endif
-            	sdSendLogData(_value);
-          	} 
-          	else
-#endif
-          	// Process incoming messages
-          	_processIncomingMessages(_variable, _value);
-          }
+            {
+              // Process incoming messages
+#ifdef DEBUG                
+              Serial.print("process "); Serial.print(_variable); Serial.print(" -> "); Serial.println(_value);
+#endif              
+              _processIncomingMessages(_variable, _value);
+            }
         }
       }
     }
-  }  // for
+  }
 
   if (lastPound == l - 1) {
     _remainBuffer[0] = '\0';
   }
   else if (lastPound > 0) {
     char tmp[128];
-  	strcpy(tmp, &_remainBuffer[lastPound + 1]);
-  	strcpy(_remainBuffer, tmp);
+    strcpy(tmp, &_remainBuffer[lastPound + 1]);
+    strcpy(_remainBuffer, tmp);
   }
 
   Serial.print("Full buffer after  >"); Serial.print(_remainBuffer); Serial.println("<");
@@ -556,85 +528,85 @@ void AMController::breakTime(unsigned long time, int *seconds, int *minutes, int
   // this is a more compact version of the C library localtime function
   // note that year is offset from 1970 !!!
 
-	unsigned long year;
-	uint8_t month, monthLength;
-	unsigned long days;
+  unsigned long year;
+  uint8_t month, monthLength;
+  unsigned long days;
 
-	*seconds = time % 60;
+  *seconds = time % 60;
   time /= 60; // now it is minutes
   *minutes = time % 60;
   time /= 60; // now it is hours
   *hours = time % 24;
   time /= 24; // now it is days
-  *Wday = ((time + 4) % 7) + 1;  // Sunday is day 1 
+  *Wday = ((time + 4) % 7) + 1;  // Sunday is day 1
 
-  year = 0;  
+  year = 0;
   days = 0;
-  while((unsigned)(days += (LEAP_YEAR(year) ? 366 : 365)) <= time) {
-  	year++;
+  while ((unsigned)(days += (LEAP_YEAR(year) ? 366 : 365)) <= time) {
+    year++;
   }
-  *Year = year+1970; // year is offset from 1970 
+  *Year = year + 1970; // year is offset from 1970
 
   days -= LEAP_YEAR(year) ? 366 : 365;
   time -= days; // now it is days in this year, starting at 0
 
-  days=0;
-  month=0;
-  monthLength=0;
-  for (month=0; month<12; month++) {
-	if (month==1) { // february
-		if (LEAP_YEAR(year)) {
-			monthLength=29;
-		} 
-		else {
-			monthLength=28;
-		}
-	} 
-	else {
-		monthLength = monthDays[month];
-	}
+  days = 0;
+  month = 0;
+  monthLength = 0;
+  for (month = 0; month < 12; month++) {
+    if (month == 1) { // february
+      if (LEAP_YEAR(year)) {
+        monthLength = 29;
+      }
+      else {
+        monthLength = 28;
+      }
+    }
+    else {
+      monthLength = monthDays[month];
+    }
 
-	if (time >= monthLength) {
-		time -= monthLength;
-	} 
-	else {
-		break;
-	}
-}
-  *Month = month + 1;  // jan is month 1  
+    if (time >= monthLength) {
+      time -= monthLength;
+    }
+    else {
+      break;
+    }
+  }
+  *Month = month + 1;  // jan is month 1
   *Day = time + 1;     // day of month
 }
 
 void AMController::printTime(unsigned long time) {
 
-	int seconds;
-	int minutes;
-	int hours;
-	int Wday;
-	long Year;
-	int Month;
-	int Day;
+  int seconds;
+  int minutes;
+  int hours;
+  int Wday;
+  long Year;
+  int Month;
+  int Day;
 
-	this->breakTime(time, &seconds, &minutes, &hours, &Wday, &Year, &Month, &Day);
+  this->breakTime(time, &seconds, &minutes, &hours, &Wday, &Year, &Month, &Day);
 
-	Serial.print(Day);
-	Serial.print("/");
-	Serial.print(Month);
-	Serial.print("/");
-	Serial.print(Year);
-	Serial.print(" ");
-	Serial.print(hours);
-	Serial.print(":");
-	Serial.print(minutes);
-	Serial.print(":");
-	Serial.print(seconds);
+  Serial.print(Day);
+  Serial.print("/");
+  Serial.print(Month);
+  Serial.print("/");
+  Serial.print(Year);
+  Serial.print(" ");
+  Serial.print(hours);
+  Serial.print(":");
+  Serial.print(minutes);
+  Serial.print(":");
+  Serial.print(seconds);
 }
 
 #endif
 
 unsigned long AMController::now() {
-	unsigned long now = _startTime + millis()/1000;
-	return now;
+  unsigned long now = _startTime + millis() / 1000;
+  return now;
 }
 
 
@@ -702,9 +674,9 @@ void AMController::dumpAlarms() {
     if (!fileManager.read(_alarmFile, i, (uint8_t *)&a, sizeof(a)))
       return;
 
-    Serial.print("\tId: "); Serial.print(a.id);
-	this->printTime(a.time);
-    Serial.print(" Repeat: "); 
+    Serial.print("\tId: "); Serial.print(a.id); Serial.print(" ");
+    this->printTime(a.time);
+    Serial.print(" Repeat: ");
     Serial.println(a.repeat);
   }
 }
@@ -1118,7 +1090,7 @@ void AMController::disconnected(void) {
 
 
 void AMController::dataAvailable(String data) {
-  strcat(_remainBuffer,data.c_str());
+  strcat(_remainBuffer, data.c_str());
   _dataAvailable = true;
 }
 
@@ -1127,19 +1099,19 @@ void AMController::dataAvailable(String data) {
 void connectHandler(BLEDevice central) {
   // central connected event handler
   myGlobal->connected();
-#ifdef DEBUG  
+#ifdef DEBUG
   Serial.print("Connected event, central: ");
   Serial.println(central.address());
-#endif  
+#endif
 }
 
 void disconnectHandler(BLEDevice central) {
   // central disconnected event handler
   myGlobal->disconnected();
-#ifdef DEBUG   
+#ifdef DEBUG
   Serial.print("Disconnected event, central: ");
   Serial.println(central.address());
-#endif  
+#endif
 }
 
 void characteristicWritten(BLEDevice central, BLECharacteristic characteristic) {
@@ -1150,10 +1122,10 @@ void characteristicWritten(BLEDevice central, BLECharacteristic characteristic) 
 
   char buffer[40];
   int n = characteristic.readValue(buffer, sizeof(buffer));
-  memset(&buffer[n], 0, sizeof(buffer)-n);
+  memset(&buffer[n], 0, sizeof(buffer) - n);
   String d = String(buffer);
-  
-#ifdef DEBUG  
+
+#ifdef DEBUG
   //Serial.print("R >"); Serial.print(d); Serial.print("< "); Serial.println(n);
 #endif
 
