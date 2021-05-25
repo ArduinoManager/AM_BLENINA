@@ -57,7 +57,7 @@ float temperature;
 Servo servo;
 int servoPos;
 
-#define SD_SELECT 17
+#define SD_SELECT 5
 
 unsigned long lastTempMeasurementMillis = 0;
 unsigned long lastStoredSampleMillis = 0;
