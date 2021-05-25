@@ -110,16 +110,13 @@ void setup() {
 
 #if defined(SDLOGGEDATAGRAPH_SUPPORT)
   if (amController.sdFileSize("TodayT") > 2000) {
-
     amController.sdPurgeLogData("TodayT");
     Serial.println("TodayT purged");
   }
-
   amController.sdLogLabels("TodayT", "T");
 #endif
 
   Serial.println("**** Advertising ****");
-
   Serial.println("Ready");
 }
 
@@ -135,9 +132,7 @@ void loop() {
 void doWork() {
 
   if (millis() - lastTempMeasurementMillis > 2500) {
-
     lastTempMeasurementMillis = millis();
-
     float voltage;
     voltage = getVoltage(TEMPERATUREPIN);  //getting the voltage reading from the temperature sensor
     temperature = voltage * 100.0;
@@ -151,15 +146,12 @@ void doWork() {
 
 #if defined(SDLOGGEDATAGRAPH_SUPPORT)
   if ( (millis() - lastStoredSampleMillis) > 5000) {
-
     lastStoredSampleMillis = millis();
-
     Serial.println("Temperature stored");
-
     amController.sdLog("TodayT", amController.now(), temperature);
   }
 #endif
-	amController.updateBatteryLevel(random(0, 100));
+  amController.updateBatteryLevel(random(0, 100));
 }
 
 /**
@@ -167,42 +159,35 @@ void doWork() {
 */
 void doSync () {
   //Serial.print("Sync "); Serial.println(variable);
-    amController.writeMessage("Knob1", (float)map(servo.read(), 0, 180, 0, 1023));
-    amController.writeMessage("S1", yellowLed);
-    amController.writeTxtMessage("Msg", "Hello, I'm your Arduino Nano 33 IOT board");
+  amController.writeMessage("Knob1", (float)map(servo.read(), 0, 180, 0, 1023));
+  amController.writeMessage("S1", yellowLed);
+  amController.writeTxtMessage("Msg", "Hello, I'm your Arduino Nano 33 IOT board");
 }
 
 /**
   This function is called when a new message is received from the iOS device
 */
 void processIncomingMessages(char *variable, char *value) {
-  
-  if (strcmp(variable, "S1") == 0) {
 
+  if (strcmp(variable, "S1") == 0) {
     yellowLed = atoi(value);
   }
 
   if (strcmp(variable, "Knob1") == 0) {
-
     servoPos = atoi(value);
     servoPos = map(servoPos, 0, 1023, 0, 180);
   }
 
   if (strcmp(variable, "Push1") == 0) {
-
     amController.temporaryDigitalWrite(CONNECTIONPIN, LOW, 500);
   }
 
   if (strcmp(variable, "Cmd_01") == 0) {
-
     amController.log("Command: "); amController.logLn(value);
-
     if (strcmp(value, "blink") == 0) {
       amController.temporaryDigitalWrite(CONNECTIONPIN, LOW, 500);
     }
-
-    Serial.print("Command: ");
-    Serial.println(value);
+    Serial.print("Command: "); Serial.println(value);
   }
 }
 
@@ -210,7 +195,6 @@ void processIncomingMessages(char *variable, char *value) {
   This function is called periodically and messages can be sent to the iOS device
 */
 void processOutgoingMessages() {
-
   amController.writeMessage("T", temperature);
   amController.writeMessage("Led13", yellowLed);
   amController.writeMessage("Pot", pot);
@@ -219,14 +203,11 @@ void processOutgoingMessages() {
 #if defined(ALARMS_SUPPORT)
 /**
 
-
   This function is called when a Alarm is fired
 
 */
 void processAlarms(char *alarm) {
-
   Serial.print(alarm); Serial.println(" fired");
-
   amController.temporaryDigitalWrite(CONNECTIONPIN, LOW, 500);
   servoPos = 0;
 }
