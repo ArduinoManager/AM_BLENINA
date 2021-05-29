@@ -73,18 +73,16 @@ class AMController {
   private:
 
     volatile bool 	    _dataAvailable;
-
     char      		      _remainBuffer[128];
-
     volatile bool 	    _connectionChanged;
     volatile bool       _connected;
     bool		            _sync;
 
 #ifdef ALARMS_SUPPORT
-	unsigned long		_startTime;
+		unsigned long				_startTime;
     String              _alarmFile;
     unsigned long       _lastAlarmCheck;
-    char 				_alarmId[8];
+    char 								_alarmId[8];
     unsigned long       _alarmTime;
 #endif
 

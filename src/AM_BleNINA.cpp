@@ -94,7 +94,7 @@ AMController::AMController(
 
   _processAlarms = processAlarms;
   _lastAlarmCheck = 0;
-
+  _startTime = 0;
   myGlobal = this;
 }
 #endif
@@ -374,7 +374,9 @@ void AMController::processIncomingData() {
     strcpy(_remainBuffer, tmp);
   }
 
+#ifdef DEBUG 
   Serial.print("Full buffer after  >"); Serial.print(_remainBuffer); Serial.println("<");
+#endif  
 }
 
 void AMController::writeMessage(const char *variable, int value) {
@@ -405,6 +407,10 @@ void AMController::writeMessage(const char *variable, float value) {
 
 void AMController::writeTripleMessage(const char *variable, float vX, float vY, float vZ) {
   char buffer[VARIABLELEN + VALUELEN + 3];
+  
+  if (!_connected) {
+    return;
+  }
   snprintf(buffer, VARIABLELEN + VALUELEN + 3, "%s=%.2f:%.2f:%.2f#", variable, vX, vY, vZ);
   writeBuffer((uint8_t *)&buffer, strlen(buffer)*sizeof(char));
   BLE.poll();
@@ -417,7 +423,6 @@ void AMController::writeTxtMessage(const char *variable, const char *value) {
   if (!_connected) {
     return;
   }
-
   memset(&buffer, 0, 128);
   snprintf(buffer, 128, "%s=%s#", variable, value);
   writeBuffer((uint8_t *)&buffer, strlen(buffer));
@@ -605,7 +610,10 @@ void AMController::printTime(unsigned long time) {
 #endif
 
 unsigned long AMController::now() {
-  unsigned long now = _startTime + millis() / 1000;
+  if (_startTime == 0) {
+  	// Time never synchronized 
+  	return;
+  }
   return now;
 }
 
