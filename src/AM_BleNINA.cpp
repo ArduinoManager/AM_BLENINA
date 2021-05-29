@@ -612,7 +612,7 @@ void AMController::printTime(unsigned long time) {
 unsigned long AMController::now() {
   if (_startTime == 0) {
   	// Time never synchronized 
-  	return;
+  	return 0;
   }
   return now;
 }
