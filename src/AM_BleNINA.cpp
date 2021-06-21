@@ -339,7 +339,7 @@ void AMController::processIncomingData() {
 #ifdef ALARMS_SUPPORT
           if (strcmp(_variable, "$Time$") == 0) {
             Serial.print("Setting time at value: "); Serial.println(atol(_value));
-            _startTime = atol(_value);
+            _startTime =  atol(_value) - millis() / 1000;
 #ifdef DEBUG            
             Serial.print("Time Synchronized "); this->printTime(this->now()); Serial.println();
 #endif            
@@ -614,6 +614,7 @@ unsigned long AMController::now() {
   	// Time never synchronized 
   	return 0;
   }
+  unsigned long now = _startTime + millis() / 1000;
   return now;
 }
 
